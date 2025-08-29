@@ -1,16 +1,35 @@
 import { Request, Response } from "express";
+import { supabase } from "../config/supabase";
 
-export const uploadChart = (req: Request, res: Response) => {
+export const uploadChart = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
-    return res.status(200).json({
-      message: "Chart uploaded successfully",
-      file: req.file,
+    const file = req.file;
+    const fileName = `${Date.now()}-${file.originalname}`;
+
+    const { data, error } = await supabase.storage
+      .from("charts") // 👈 your bucket name
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("charts")
+      .getPublicUrl(fileName);
+
+    res.json({
+      message: "File uploaded successfully",
+      filePath: data.path,
+      publicUrl: publicUrlData.publicUrl,
     });
-  } catch (error) {
-    return res.status(500).json({ message: "Error uploading chart", error });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 };

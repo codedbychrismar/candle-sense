@@ -1,10 +1,9 @@
-import { Router } from "express";
+import express from "express";
 import { upload } from "../middleware/uploadMiddleware";
 import { uploadChart } from "../controllers/chartController";
 
-const router = Router();
+const router = express.Router();
 
-// POST /api/charts/upload
-router.post("/upload", upload.single("chart"), uploadChart);
+router.post("/upload", upload.single("file"), uploadChart);
 
 export default router;
