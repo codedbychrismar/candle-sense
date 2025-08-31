@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { supabase } from "../config/supabase";
-import Chart from "../models/chartModel"; // 👈 import model
+import Chart from "../models/chartModel";
+import { detectPattern } from "../services/patternService"; // 👈 import service
 
 export const uploadChart = async (req: Request, res: Response) => {
   try {
@@ -20,16 +21,19 @@ export const uploadChart = async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from("charts")
       .getPublicUrl(fileName);
 
-    // ✅ Save metadata in MongoDB
+    // 👇 For now, fake a candle OHLC
+    const candle = { open: 100, high: 110, low: 95, close: 105 };
+    const pattern = detectPattern(candle);
+
+    // ✅ Save in DB
     const chart = new Chart({
       filename: fileName,
       url: publicUrlData.publicUrl,
-      patternDetected: "N/A", // can replace with real detection later
+      patternDetected: pattern,
       notes: "",
     });
 
@@ -39,6 +43,7 @@ export const uploadChart = async (req: Request, res: Response) => {
       message: "File uploaded successfully",
       filePath: data.path,
       publicUrl: publicUrlData.publicUrl,
+      patternDetected: pattern,
       savedToDB: chart,
     });
   } catch (err: any) {
